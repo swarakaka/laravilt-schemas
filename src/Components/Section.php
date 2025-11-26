@@ -23,6 +23,39 @@ class Section extends Component
     protected string|Closure|null $icon = null;
 
     /**
+     * Set up the component - auto-populate heading from name if not set.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Auto-set heading from name if not explicitly set
+        if (is_null($this->heading)) {
+            $this->heading = $this->name;
+        }
+
+        // Auto-generate ID from name (convert to snake_case)
+        if (! $this->id) {
+            $this->id($this->generateIdFromName($this->name));
+        }
+    }
+
+    /**
+     * Generate a snake_case ID from the name.
+     */
+    protected function generateIdFromName(string $name): string
+    {
+        // Remove translation function calls like __() or trans()
+        $cleaned = preg_replace('/^(?:__|trans)\([\'"](.+?)[\'"]\)$/', '$1', $name);
+
+        // Convert to snake_case
+        $snakeCase = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $cleaned));
+
+        // Remove leading/trailing underscores
+        return trim($snakeCase, '_');
+    }
+
+    /**
      * Set the section heading.
      */
     public function heading(string|Closure $heading): static
