@@ -1,7 +1,6 @@
 <?php
 
 use Laravilt\Schemas\Components\Section;
-use Laravilt\Support\Component;
 
 beforeEach(function () {
     $this->section = Section::make('test-section');

@@ -7,7 +7,7 @@
         <div
             v-for="(child, index) in schema"
             :key="index"
-            :class="getColumnSpanClass(child)"
+            :class="[getColumnSpanClass(child), child.hidden ? 'hidden' : '']"
         >
             <component
                 :is="child.component || 'div'"

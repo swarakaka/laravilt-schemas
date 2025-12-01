@@ -1,0 +1,52 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Schemas\Schema;
+use Laravilt\Schemas\Concerns\HasSchema;
+use Laravilt\Support\Component;
+
+/**
+ * {{ class }} Schema
+ *
+ * Custom schema for organizing form components and layout.
+ */
+class {{ class }} extends Schema
+{
+    use HasSchema;
+
+    protected string $view = 'schemas.{{ schemaKebab }}';
+
+    /**
+     * Configure the schema.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Configure your schema here
+    }
+
+    /**
+     * Define the schema components.
+     */
+    public function schema(array $components): static
+    {
+        $this->schema = $components;
+
+        return $this;
+    }
+
+    /**
+     * Serialize to Laravilt props.
+     */
+    public function toLaraviltProps(): array
+    {
+        return array_merge(parent::toLaraviltProps(), [
+            'schema' => array_map(
+                fn (Component $component): array => $component->toLaraviltProps(),
+                $this->getVisibleComponents()
+            ),
+        ]);
+    }
+}

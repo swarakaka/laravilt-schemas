@@ -1,7 +1,6 @@
 <?php
 
 use Laravilt\Schemas\Components\Grid;
-use Laravilt\Support\Component;
 
 beforeEach(function () {
     $this->grid = Grid::make('test-grid');

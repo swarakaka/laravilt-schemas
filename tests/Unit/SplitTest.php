@@ -1,7 +1,6 @@
 <?php
 
 use Laravilt\Schemas\Components\Split;
-use Laravilt\Support\Component;
 
 beforeEach(function () {
     $this->split = Split::make('test-split');

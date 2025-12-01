@@ -1,7 +1,6 @@
 <?php
 
 use Laravilt\Schemas\Components\Fieldset;
-use Laravilt\Support\Component;
 
 beforeEach(function () {
     $this->fieldset = Fieldset::make('test-fieldset');

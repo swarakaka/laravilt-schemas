@@ -1,0 +1,125 @@
+<?php
+
+namespace {{ namespace }};
+
+use Closure;
+use Laravilt\Schemas\Concerns\HasSchema;
+use Laravilt\Support\Component;
+
+/**
+ * {{ class }} Component
+ *
+ * Custom schema component for organizing form fields and layout.
+ */
+class {{ class }} extends Component
+{
+    use HasSchema;
+
+    protected string $view = 'schemas.components.{{ schemaKebab }}';
+
+    protected array $schema = [];
+
+    protected string|Closure|null $heading = null;
+
+    protected string|Closure|null $description = null;
+
+    protected string|Closure|null $icon = null;
+
+    /**
+     * Configure the component.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Configure your component here
+    }
+
+    /**
+     * Set the heading.
+     */
+    public function heading(string|Closure $heading): static
+    {
+        $this->heading = $heading;
+
+        return $this;
+    }
+
+    /**
+     * Get the heading.
+     */
+    public function getHeading(): ?string
+    {
+        return $this->evaluate($this->heading);
+    }
+
+    /**
+     * Set the description.
+     */
+    public function description(string|Closure $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    /**
+     * Get the description.
+     */
+    public function getDescription(): ?string
+    {
+        return $this->evaluate($this->description);
+    }
+
+    /**
+     * Set the icon.
+     */
+    public function icon(string|Closure $icon): static
+    {
+        $this->icon = $icon;
+
+        return $this;
+    }
+
+    /**
+     * Get the icon.
+     */
+    public function getIcon(): ?string
+    {
+        return $this->evaluate($this->icon);
+    }
+
+    /**
+     * Set the schema.
+     */
+    public function schema(array $components): static
+    {
+        $this->schema = $components;
+
+        return $this;
+    }
+
+    /**
+     * Get the schema.
+     */
+    public function getSchema(): array
+    {
+        return $this->schema;
+    }
+
+    /**
+     * Serialize to Laravilt props.
+     */
+    public function toLaraviltProps(): array
+    {
+        return array_merge(parent::toLaraviltProps(), [
+            'heading' => $this->getHeading(),
+            'description' => $this->getDescription(),
+            'icon' => $this->getIcon(),
+            'schema' => array_map(
+                fn (Component $component): array => $component->toLaraviltProps(),
+                $this->getSchema()
+            ),
+        ]);
+    }
+}

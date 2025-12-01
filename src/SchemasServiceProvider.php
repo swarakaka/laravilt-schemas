@@ -49,6 +49,12 @@ class SchemasServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/lang' => lang_path('vendor/laravilt-schemas'),
             ], 'laravilt-schemas-translations');
+
+            // Register commands
+            $this->commands([
+                Commands\InstallSchemasCommand::class,
+                Commands\MakeSchemaCommand::class,
+            ]);
         }
     }
 }

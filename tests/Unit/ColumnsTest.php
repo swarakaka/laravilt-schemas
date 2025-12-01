@@ -1,7 +1,6 @@
 <?php
 
 use Laravilt\Schemas\Components\Columns;
-use Laravilt\Support\Component;
 
 beforeEach(function () {
     $this->columns = Columns::make('test-columns');
