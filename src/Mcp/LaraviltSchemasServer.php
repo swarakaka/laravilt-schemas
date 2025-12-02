@@ -9,6 +9,7 @@ use Laravilt\Schemas\Mcp\Tools\SearchDocsTool;
 class LaraviltSchemasServer extends Server
 {
     protected string $name = 'Laravilt Schemas';
+
     protected string $version = '1.0.0';
 
     protected string $instructions = <<<'MARKDOWN'
