@@ -1,13 +1,20 @@
 {
     "name": "laravilt/schemas",
-    "description": "Ready-to-use grid system, sections, and layouts designed to support a wide range of layout configurations. Managed by a PHP backend and Laravel, this solution offers high-end customization and is fully compatible with FilamentPHP v4, providing a flexible and powerful foundation for building complex, responsive web layouts.",
+    "description": "Complete schema system with sections, tabs, grids, and layout components. Organize form fields and information displays with powerful layout components supporting collapsible sections, responsive grids, and nested schemas.",
     "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": [
         "laravel",
         "laravilt",
-        "plugin"
+        "schemas",
+        "sections",
+        "tabs",
+        "grids",
+        "layouts",
+        "organization",
+        "inertia",
+        "vue"
     ],
     "authors": [
         {
@@ -68,12 +75,5 @@
             ]
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../support"
-        }
-    ]
+    "prefer-stable": true
 }

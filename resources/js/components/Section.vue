@@ -1,54 +1,66 @@
 <template>
-    <div class="space-y-6">
+    <div class="overflow-hidden rounded-xl border bg-card text-card-foreground shadow">
         <!-- Section Header -->
-        <header v-if="heading">
-            <div
-                :class="[
-                    'flex items-center gap-2',
-                    collapsible ? 'cursor-pointer' : ''
-                ]"
-                @click="collapsible && toggleCollapse()"
-            >
+        <div
+            v-if="heading || description || $slots.header"
+            :class="[
+                'flex justify-between border-b p-6',
+                collapsible ? 'cursor-pointer hover:bg-muted/50' : ''
+            ]"
+            @click="collapsible && toggleCollapse()"
+        >
+            <div class="flex items-start gap-3 flex-1">
                 <component
                     v-if="icon && getIconComponent(icon)"
                     :is="getIconComponent(icon)"
-                    class="h-4 w-4 text-muted-foreground flex-shrink-0"
+                    class="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5"
                 />
-                <h3 class="mb-0.5 text-base font-medium">
-                    {{ heading }}
-                </h3>
-                <ChevronDown
-                    v-if="collapsible"
-                    :class="[
-                        'h-4 w-4 text-muted-foreground transition-transform ml-auto',
-                        isCollapsed ? '-rotate-90' : ''
-                    ]"
-                />
+                <div class="flex-1">
+                    <slot name="header">
+                        <h3 class="text-lg font-semibold leading-none tracking-tight">
+                            {{ heading }}
+                        </h3>
+                        <p v-if="description" class="mt-1.5 text-sm text-muted-foreground">
+                            {{ description }}
+                        </p>
+                    </slot>
+                </div>
             </div>
-            <p v-if="description" class="text-sm text-muted-foreground">
-                {{ description }}
-            </p>
-        </header>
+            <ChevronDown
+                v-if="collapsible"
+                :class="[
+                    'h-5 w-5 text-muted-foreground transition-transform ml-4 mt-0.5 flex-shrink-0',
+                    isCollapsed ? '-rotate-90 rtl:rotate-90' : ''
+                ]"
+            />
+        </div>
 
-        <!-- Section Content -->
-        <div v-show="!isCollapsed" class="space-y-6">
-            <template v-for="(component, index) in schema" :key="component.name || component.id || index">
-                <component
-                    :is="getComponent(component)"
-                    v-bind="getComponentProps(component)"
-                    :value="isSchemaComponent(component) ? undefined : modelValue?.[component.name]"
-                    :modelValue="isSchemaComponent(component) ? modelValue : undefined"
-                    @update:model-value="(value) => handleComponentUpdate(component, value)"
-                />
-            </template>
+        <!-- Section Body -->
+        <div v-show="!isCollapsed">
+            <div class="p-6">
+                <slot name="body">
+                    <SchemaRenderer
+                        v-if="schema && schema.length > 0"
+                        :schema="schema"
+                        :model-value="modelValue"
+                        @update:model-value="$emit('update:modelValue', $event)"
+                    />
+                </slot>
+            </div>
+
+            <!-- Section Footer -->
+            <div v-if="$slots.footer" class="border-t bg-muted/50 px-6 py-4">
+                <slot name="footer"></slot>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from 'vue'
+import { ref } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
+import SchemaRenderer from './SchemaRenderer.vue'
 
 const props = defineProps<{
     heading?: string
@@ -83,75 +95,5 @@ const getIconComponent = (iconName: string) => {
         .join('')
 
     return (LucideIcons as any)[pascalCase] || null
-}
-
-// Map component types to their Vue components
-const componentMap: Record<string, any> = {
-    // Schema layout components
-    grid: defineAsyncComponent(() => import('./Grid.vue')),
-    section: defineAsyncComponent(() => import('./Section.vue')),
-
-    // Form field components
-    text_input: defineAsyncComponent(() => import('@laravilt/forms/components/fields/TextInput.vue')),
-    textarea: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Textarea.vue')),
-    select: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Select.vue')),
-    checkbox: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Checkbox.vue')),
-    radio: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Radio.vue')),
-    toggle: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Toggle.vue')),
-    toggle_buttons: defineAsyncComponent(() => import('@laravilt/forms/components/fields/ToggleButtons.vue')),
-    hidden: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Hidden.vue')),
-    date_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/DatePicker.vue')),
-    time_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/TimePicker.vue')),
-    date_time_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/DateTimePicker.vue')),
-    date_range_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/DateRangePicker.vue')),
-    color_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/ColorPicker.vue')),
-    file_upload: defineAsyncComponent(() => import('@laravilt/forms/components/fields/FileUpload.vue')),
-    rich_editor: defineAsyncComponent(() => import('@laravilt/forms/components/fields/RichEditor.vue')),
-    markdown_editor: defineAsyncComponent(() => import('@laravilt/forms/components/fields/MarkdownEditor.vue')),
-    tags_input: defineAsyncComponent(() => import('@laravilt/forms/components/fields/TagsInput.vue')),
-    key_value: defineAsyncComponent(() => import('@laravilt/forms/components/fields/KeyValue.vue')),
-    repeater: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Repeater.vue')),
-    builder: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Builder.vue')),
-    icon_picker: defineAsyncComponent(() => import('@laravilt/forms/components/fields/IconPicker.vue')),
-    number_field: defineAsyncComponent(() => import('@laravilt/forms/components/fields/NumberField.vue')),
-    pin_input: defineAsyncComponent(() => import('@laravilt/forms/components/fields/PinInput.vue')),
-    rate_input: defineAsyncComponent(() => import('@laravilt/forms/components/fields/RateInput.vue')),
-    checkbox_list: defineAsyncComponent(() => import('@laravilt/forms/components/fields/CheckboxList.vue')),
-    slider: defineAsyncComponent(() => import('@laravilt/forms/components/fields/Slider.vue')),
-
-    // InfoList Entry components
-    text_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/TextEntry.vue')),
-    badge_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/BadgeEntry.vue')),
-    icon_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/IconEntry.vue')),
-    image_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/ImageEntry.vue')),
-    color_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/ColorEntry.vue')),
-    code_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/CodeEntry.vue')),
-    key_value_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/KeyValueEntry.vue')),
-    repeatable_entry: defineAsyncComponent(() => import('@laravilt/infolists/components/entries/RepeatableEntry.vue')),
-}
-
-const getComponent = (component: any) => {
-    const type = component.component || 'div'
-    return componentMap[type] || 'div'
-}
-
-const getComponentProps = (component: any) => {
-    const { value, modelValue, ...props } = component
-    return props
-}
-
-const isSchemaComponent = (component: any) => {
-    const schemaComponents = ['grid', 'section']
-    return schemaComponents.includes(component.component)
-}
-
-const handleComponentUpdate = (component: any, value: any) => {
-    if (isSchemaComponent(component)) {
-        // For schema components, merge the entire value object
-        emit('update:modelValue', { ...props.modelValue, ...value })
-    } else {
-        // For regular fields, update the specific field
-        emit('update:modelValue', { ...props.modelValue, [component.name]: value })
-    }
 }
 </script>

@@ -14,6 +14,7 @@
                 :is="getComponent(component)"
                 v-bind="getComponentProps(component)"
                 :value="isSchemaComponent(component) ? undefined : internalFormData[component.name]"
+                :state="isSchemaComponent(component) ? undefined : internalFormData[component.name]"
                 :modelValue="isSchemaComponent(component) ? internalFormData : undefined"
                 @update:model-value="(value) => handleComponentUpdate(component, value)"
             />
