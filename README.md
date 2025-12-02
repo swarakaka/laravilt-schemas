@@ -5,6 +5,11 @@
 [![Latest Stable Version](https://poser.pugx.org/laravilt/schemas/version.svg)](https://packagist.org/packages/laravilt/schemas)
 [![License](https://poser.pugx.org/laravilt/schemas/license.svg)](https://packagist.org/packages/laravilt/schemas)
 [![Downloads](https://poser.pugx.org/laravilt/schemas/d/total.svg)](https://packagist.org/packages/laravilt/schemas)
+[![Dependabot Updates](https://github.com/laravilt/schemas/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/laravilt/schemas/actions/workflows/dependabot/dependabot-updates)
+[![PHP Code Styling](https://github.com/laravilt/schemas/actions/workflows/fix-php-code-styling.yml/badge.svg)](https://github.com/laravilt/schemas/actions/workflows/fix-php-code-styling.yml)
+[![Tests](https://github.com/laravilt/schemas/actions/workflows/tests.yml/badge.svg)](https://github.com/laravilt/schemas/actions/workflows/tests.yml)
+
+
 
 Complete schema system with sections, tabs, grids, and layout components for Laravilt. Organize form fields and information displays with powerful layout components.
 
