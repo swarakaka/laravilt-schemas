@@ -13,6 +13,21 @@ class Schema extends Component
 
     protected array $schema = [];
 
+    protected array $data = [];
+
+    /**
+     * Create a new schema instance.
+     * Override parent to make name optional.
+     */
+    public static function make(?string $name = null): static
+    {
+        $static = app(static::class);
+        $static->name = $name ?? 'schema';
+        $static->setUp();
+
+        return $static;
+    }
+
     /**
      * Set the schema components.
      */
@@ -32,6 +47,67 @@ class Schema extends Component
     }
 
     /**
+     * Fill the schema with data.
+     */
+    public function fill(array $data): static
+    {
+        $this->data = $data;
+
+        // Fill each component/entry with the data
+        $this->fillComponents($this->schema, $data);
+
+        return $this;
+    }
+
+    /**
+     * Recursively fill components with data.
+     */
+    protected function fillComponents(array $components, array $data): void
+    {
+        foreach ($components as $component) {
+            // If component has a fill method (like Entry), call it
+            if (method_exists($component, 'getName') && method_exists($component, 'state')) {
+                $name = $component->getName();
+                $value = $data[$name] ?? null;
+
+                // Set state - the component will handle null values (e.g., Entry uses placeholder)
+                $component->state($value);
+            }
+
+            // Handle nested schemas (Sections, Grids, Tabs, etc.)
+            if (method_exists($component, 'getSchema')) {
+                $nestedSchema = $component->getSchema();
+                if (is_array($nestedSchema)) {
+                    $this->fillComponents($nestedSchema, $data);
+                }
+            }
+
+            // Handle tabs
+            if (method_exists($component, 'getTabs')) {
+                $tabs = $component->getTabs();
+                if (is_array($tabs)) {
+                    foreach ($tabs as $tab) {
+                        if (method_exists($tab, 'getSchema')) {
+                            $tabSchema = $tab->getSchema();
+                            if (is_array($tabSchema)) {
+                                $this->fillComponents($tabSchema, $data);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the data.
+     */
+    public function getData(): array
+    {
+        return $this->data;
+    }
+
+    /**
      * Get all visible components in the schema.
      */
     public function getVisibleComponents(): array
@@ -47,19 +123,20 @@ class Schema extends Component
     }
 
     /**
+     * Serialize to Inertia props (for page rendering).
+     */
+    public function toInertiaProps(): array
+    {
+        return $this->toLaraviltProps($this->data);
+    }
+
+    /**
      * Serialize to Laravilt props with evaluation context.
      */
     public function toLaraviltProps(array &$data = [], mixed $record = null, ?string $changedField = null): array
     {
-        \Log::info('[Schema] toLaraviltProps called', [
-            'changedField' => $changedField,
-            'hasChangedFieldInData' => $changedField ? array_key_exists($changedField, $data) : false,
-            'data' => $data,
-        ]);
-
         // Execute afterStateUpdated callbacks if a field changed
         if ($changedField && array_key_exists($changedField, $data)) {
-            \Log::info('[Schema] Executing afterStateUpdated callbacks for field: '.$changedField);
             $this->executeAfterStateUpdatedCallbacks($this->schema, $changedField, $data[$changedField], $data, $record);
         }
 

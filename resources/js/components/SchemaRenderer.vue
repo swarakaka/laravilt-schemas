@@ -1,25 +1,27 @@
 <template>
-    <form ref="formRef" :class="containerClass" @submit.prevent>
-        <template v-for="(component, index) in internalSchema" :key="component.name || component.id || index">
-            <!-- Render action buttons with form data -->
-            <FormActionButton
-                v-if="isAction(component)"
-                v-bind="component"
-                :getFormData="getFormData"
-            />
-
+    <div ref="formRef" :class="containerClass">
+        <template v-for="(component, index) in nonActionComponents" :key="component.name || component.id || index">
             <!-- Render regular form components -->
             <component
-                v-else
                 :is="getComponent(component)"
                 v-bind="getComponentProps(component)"
-                :value="isSchemaComponent(component) ? undefined : internalFormData[component.name]"
-                :state="isSchemaComponent(component) ? undefined : internalFormData[component.name]"
+                :value="isSchemaComponent(component) ? undefined : (isEntryComponent(component) ? component.state : internalFormData[component.name])"
+                :state="isSchemaComponent(component) ? undefined : (isEntryComponent(component) ? component.state : internalFormData[component.name])"
                 :modelValue="isSchemaComponent(component) ? internalFormData : undefined"
                 @update:model-value="(value) => handleComponentUpdate(component, value)"
             />
         </template>
-    </form>
+
+        <!-- Render action buttons grouped together with proper gap (only if not handled by parent) -->
+        <div v-if="actionComponents.length > 0 && !parentHandlesActions" class="flex items-center gap-4">
+            <FormActionButton
+                v-for="(action, index) in actionComponents"
+                :key="action.name || index"
+                v-bind="action"
+                :getFormData="getFormData"
+            />
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -42,11 +44,14 @@ const FormActionButton = {
     },
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     schema: Array<any>
     modelValue?: Record<string, any>
     schemaId?: string
-}>()
+    parentHandlesActions?: boolean
+}>(), {
+    parentHandlesActions: false,
+})
 
 const emit = defineEmits<{
     'update:modelValue': [value: Record<string, any>]
@@ -308,11 +313,30 @@ const validateForm = () => {
         return true
     }
 
-    const isValid = formRef.value.checkValidity()
+    // Find the closest form element (could be parent or self if we're inside a form)
+    const formElement = formRef.value.closest('form') as HTMLFormElement | null
 
-    if (!isValid) {
-        // Trigger validation UI (show error messages)
-        formRef.value.reportValidity()
+    if (formElement) {
+        const isValid = formElement.checkValidity()
+
+        if (!isValid) {
+            // Trigger validation UI (show error messages)
+            formElement.reportValidity()
+        }
+
+        return isValid
+    }
+
+    // If no parent form, validate all inputs within this container
+    const inputs = formRef.value.querySelectorAll('input, select, textarea') as NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    let isValid = true
+
+    for (const input of inputs) {
+        if (!input.checkValidity()) {
+            input.reportValidity()
+            isValid = false
+            break
+        }
     }
 
     return isValid
@@ -357,19 +381,36 @@ const isAction = (item: any) => {
     return item.hasAction === true || (item.name && !item.component)
 }
 
+// Separate action components from regular components
+const actionComponents = computed(() => {
+    if (!internalSchema.value || !Array.isArray(internalSchema.value)) return []
+    return internalSchema.value.filter(isAction)
+})
+
+const nonActionComponents = computed(() => {
+    if (!internalSchema.value || !Array.isArray(internalSchema.value)) return []
+    return internalSchema.value.filter((item: any) => !isAction(item))
+})
+
 // Check if a component is a schema component (needs entire modelValue, not just a field value)
 const isSchemaComponent = (component: any) => {
     const schemaComponents = ['tabs', 'section', 'grid']
     return schemaComponents.includes(component.component)
 }
 
+// Check if a component is an entry component (infolist entry - uses state from backend)
+const isEntryComponent = (component: any) => {
+    const entryComponents = ['text_entry', 'badge_entry', 'icon_entry', 'image_entry', 'color_entry', 'code_entry', 'key_value_entry', 'repeatable_entry']
+    return entryComponents.includes(component.component)
+}
+
 // Determine container spacing based on what we're rendering
 const containerClass = computed(() => {
     if (!internalSchema.value || !Array.isArray(internalSchema.value) || internalSchema.value.length === 0) return ''
 
-    // Check if we're rendering sections - if so, use space-y-12
+    // Check if we're rendering sections - if so, use space-y-8 (reduced from space-y-12)
     const hasSections = internalSchema.value.some(c => c.component === 'section')
-    if (hasSections) return 'space-y-12'
+    if (hasSections) return 'space-y-8'
 
     // Otherwise use space-y-6 for general spacing
     return 'space-y-6'
@@ -435,4 +476,11 @@ const getComponentProps = (component: any) => {
     const { value, modelValue, ...props } = component
     return props
 }
+
+// Expose methods to parent component via template refs
+defineExpose({
+    getFormData,
+    validateForm,
+    updateSchema,
+})
 </script>
