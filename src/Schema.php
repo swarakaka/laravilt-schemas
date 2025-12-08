@@ -198,6 +198,251 @@ class Schema extends Component
     }
 
     /**
+     * Extract validation rules from all components in the schema.
+     *
+     * @return array<string, mixed> Array of field names => validation rules
+     */
+    public function getValidationRules(): array
+    {
+        return $this->extractValidationRulesFromComponents($this->schema);
+    }
+
+    /**
+     * Extract validation messages from all components in the schema.
+     *
+     * @return array<string, string> Array of validation messages
+     */
+    public function getValidationMessages(): array
+    {
+        return $this->extractValidationMessagesFromComponents($this->schema);
+    }
+
+    /**
+     * Extract validation attributes from all components in the schema.
+     *
+     * @return array<string, string> Array of validation attributes
+     */
+    public function getValidationAttributes(): array
+    {
+        return $this->extractValidationAttributesFromComponents($this->schema);
+    }
+
+    /**
+     * Get field prefixes that should be prepended to values for validation.
+     * This is used for URL fields with prefix text like "https://".
+     *
+     * @return array<string, string> Array of field names => prefix text
+     */
+    public function getFieldPrefixes(): array
+    {
+        return $this->extractFieldPrefixesFromComponents($this->schema);
+    }
+
+    /**
+     * Recursively extract field prefixes from components.
+     */
+    protected function extractFieldPrefixesFromComponents(array $components): array
+    {
+        $prefixes = [];
+
+        foreach ($components as $component) {
+            // Skip actions
+            if ($component instanceof \Laravilt\Actions\Action) {
+                continue;
+            }
+
+            // Check if component has a prefix and is a URL type
+            if (method_exists($component, 'getName') && method_exists($component, 'getPrefix') && method_exists($component, 'getType')) {
+                $name = $component->getName();
+                $prefix = $component->getPrefix();
+                $type = $component->getType();
+
+                // Only add prefix for URL fields (where prefix affects validation)
+                if ($name && $prefix && $type === 'url') {
+                    $prefixes[$name] = $prefix;
+                }
+            }
+
+            // Handle nested schemas (Sections, Grids, etc.)
+            if (method_exists($component, 'getSchema')) {
+                $nestedSchema = $component->getSchema();
+                if (is_array($nestedSchema)) {
+                    $prefixes = array_merge($prefixes, $this->extractFieldPrefixesFromComponents($nestedSchema));
+                }
+            }
+
+            // Handle tabs
+            if (method_exists($component, 'getTabs')) {
+                $tabs = $component->getTabs();
+                if (is_array($tabs)) {
+                    foreach ($tabs as $tab) {
+                        if (method_exists($tab, 'getSchema')) {
+                            $tabSchema = $tab->getSchema();
+                            if (is_array($tabSchema)) {
+                                $prefixes = array_merge($prefixes, $this->extractFieldPrefixesFromComponents($tabSchema));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $prefixes;
+    }
+
+    /**
+     * Recursively extract validation rules from components.
+     */
+    protected function extractValidationRulesFromComponents(array $components): array
+    {
+        $rules = [];
+
+        foreach ($components as $component) {
+            // Skip actions
+            if ($component instanceof \Laravilt\Actions\Action) {
+                continue;
+            }
+
+            // If component has validation rules
+            if (method_exists($component, 'getName') && method_exists($component, 'getValidationRules')) {
+                $name = $component->getName();
+                $componentRules = $component->getValidationRules();
+
+                if ($name && $componentRules) {
+                    $rules[$name] = $componentRules;
+                } elseif ($name && method_exists($component, 'isRequired') && $component->isRequired()) {
+                    // Add 'required' if the field is marked as required but has no explicit rules
+                    $rules[$name] = isset($rules[$name])
+                        ? (is_array($rules[$name]) ? array_merge(['required'], $rules[$name]) : 'required|'.$rules[$name])
+                        : 'required';
+                }
+            }
+
+            // Handle nested schemas (Sections, Grids, etc.)
+            if (method_exists($component, 'getSchema')) {
+                $nestedSchema = $component->getSchema();
+                if (is_array($nestedSchema)) {
+                    $rules = array_merge($rules, $this->extractValidationRulesFromComponents($nestedSchema));
+                }
+            }
+
+            // Handle tabs
+            if (method_exists($component, 'getTabs')) {
+                $tabs = $component->getTabs();
+                if (is_array($tabs)) {
+                    foreach ($tabs as $tab) {
+                        if (method_exists($tab, 'getSchema')) {
+                            $tabSchema = $tab->getSchema();
+                            if (is_array($tabSchema)) {
+                                $rules = array_merge($rules, $this->extractValidationRulesFromComponents($tabSchema));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Recursively extract validation messages from components.
+     */
+    protected function extractValidationMessagesFromComponents(array $components): array
+    {
+        $messages = [];
+
+        foreach ($components as $component) {
+            // Skip actions
+            if ($component instanceof \Laravilt\Actions\Action) {
+                continue;
+            }
+
+            // If component has validation messages
+            if (method_exists($component, 'getValidationMessages')) {
+                $componentMessages = $component->getValidationMessages();
+                if ($componentMessages) {
+                    $messages = array_merge($messages, $componentMessages);
+                }
+            }
+
+            // Handle nested schemas
+            if (method_exists($component, 'getSchema')) {
+                $nestedSchema = $component->getSchema();
+                if (is_array($nestedSchema)) {
+                    $messages = array_merge($messages, $this->extractValidationMessagesFromComponents($nestedSchema));
+                }
+            }
+
+            // Handle tabs
+            if (method_exists($component, 'getTabs')) {
+                $tabs = $component->getTabs();
+                if (is_array($tabs)) {
+                    foreach ($tabs as $tab) {
+                        if (method_exists($tab, 'getSchema')) {
+                            $tabSchema = $tab->getSchema();
+                            if (is_array($tabSchema)) {
+                                $messages = array_merge($messages, $this->extractValidationMessagesFromComponents($tabSchema));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Recursively extract validation attributes from components.
+     */
+    protected function extractValidationAttributesFromComponents(array $components): array
+    {
+        $attributes = [];
+
+        foreach ($components as $component) {
+            // Skip actions
+            if ($component instanceof \Laravilt\Actions\Action) {
+                continue;
+            }
+
+            // If component has a name and label, use the label as the attribute
+            if (method_exists($component, 'getName') && method_exists($component, 'getLabel')) {
+                $name = $component->getName();
+                $label = $component->getLabel();
+                if ($name && $label) {
+                    $attributes[$name] = $label;
+                }
+            }
+
+            // Handle nested schemas
+            if (method_exists($component, 'getSchema')) {
+                $nestedSchema = $component->getSchema();
+                if (is_array($nestedSchema)) {
+                    $attributes = array_merge($attributes, $this->extractValidationAttributesFromComponents($nestedSchema));
+                }
+            }
+
+            // Handle tabs
+            if (method_exists($component, 'getTabs')) {
+                $tabs = $component->getTabs();
+                if (is_array($tabs)) {
+                    foreach ($tabs as $tab) {
+                        if (method_exists($tab, 'getSchema')) {
+                            $tabSchema = $tab->getSchema();
+                            if (is_array($tabSchema)) {
+                                $attributes = array_merge($attributes, $this->extractValidationAttributesFromComponents($tabSchema));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $attributes;
+    }
+
+    /**
      * Execute afterStateUpdated callbacks for a changed field.
      */
     protected function executeAfterStateUpdatedCallbacks(array $components, string $changedField, mixed $value, array &$data, mixed $record): void

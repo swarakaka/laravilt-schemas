@@ -1,129 +1,69 @@
 <template>
-    <div :dir="rtl ? 'rtl' : 'ltr'">
-        <!-- Tab Headers - Filament Style -->
-        <div class="border-b border-gray-200 dark:border-gray-700" role="tablist">
-            <nav class="flex flex-wrap gap-x-4 px-1" aria-label="Tabs">
-                <button
-                    v-for="(tab, index) in tabs"
-                    :key="index"
-                    type="button"
-                    role="tab"
-                    :aria-selected="currentTab === index"
-                    :class="[
-                        'group inline-flex items-center gap-x-2 px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap',
-                        currentTab === index
-                            ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
-                    ]"
-                    @click="selectTab(index)"
-                >
-                    <component
-                        v-if="tab.icon && getIconComponent(tab.icon)"
-                        :is="getIconComponent(tab.icon)"
-                        class="h-5 w-5"
-                    />
-                    <span>{{ tab.label }}</span>
-                    <span
-                        v-if="tab.badge"
-                        :class="[
-                            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                            currentTab === index
-                                ? 'bg-primary-50 text-primary-700 ring-primary-600/20 dark:bg-primary-400/10 dark:text-primary-400 dark:ring-primary-400/30'
-                                : 'bg-gray-50 text-gray-600 ring-gray-500/10 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/20'
-                        ]"
-                    >
-                        {{ tab.badge }}
-                    </span>
-                </button>
-            </nav>
-        </div>
-
-        <!-- Tab Panels -->
-        <div class="mt-6">
-            <div
+    <Tabs :default-value="String(activeTab || 0)" class="w-full">
+        <TabsList class="w-full justify-start rtl:flex-row-reverse">
+            <TabsTrigger
                 v-for="(tab, index) in tabs"
                 :key="index"
-                v-show="currentTab === index"
-                role="tabpanel"
-                class="focus:outline-none"
+                :value="String(index)"
+                class="gap-2"
             >
-                <SchemaRenderer
-                    v-if="tab.schema && tab.schema.length > 0"
-                    :schema="tab.schema"
-                    :model-value="modelValue"
-                    @update:model-value="$emit('update:model-value', $event)"
+                <component
+                    v-if="tab.icon && getIconComponent(tab.icon)"
+                    :is="getIconComponent(tab.icon)"
+                    class="h-4 w-4"
                 />
-            </div>
-        </div>
-    </div>
+                <span>{{ tab.label }}</span>
+                <span
+                    v-if="tab.badge"
+                    class="ms-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary"
+                >
+                    {{ tab.badge }}
+                </span>
+            </TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+            v-for="(tab, index) in tabs"
+            :key="index"
+            :value="String(index)"
+            class="space-y-6 mt-6"
+        >
+            <SchemaRenderer
+                v-if="tab.schema"
+                :schema="tab.schema"
+                :model-value="modelValue"
+                @update:model-value="(value) => emit('update:modelValue', value)"
+            />
+        </TabsContent>
+    </Tabs>
 </template>
 
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import SchemaRenderer from './SchemaRenderer.vue';
-import * as LucideIcons from 'lucide-vue-next';
+<script setup lang="ts">
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import SchemaRenderer from './SchemaRenderer.vue'
+import * as LucideIcons from 'lucide-vue-next'
 
-const props = defineProps({
-    tabs: {
-        type: Array,
-        default: () => []
-    },
-    activeTab: {
-        type: Number,
-        default: 0
-    },
-    persistTabInQueryString: {
-        type: Boolean,
-        default: false
-    },
-    rtl: {
-        type: Boolean,
-        default: false
-    },
-    theme: {
-        type: String,
-        default: 'light'
-    },
-    modelValue: {
-        type: Object,
-        default: () => ({})
-    }
-});
+defineProps<{
+    tabs: Array<any>
+    activeTab?: number
+    persistTabInQueryString?: boolean
+    modelValue?: Record<string, any>
+}>()
 
-defineEmits(['update:model-value']);
-
-const currentTab = ref(props.activeTab);
-
-const selectTab = (index) => {
-    currentTab.value = index;
-
-    if (props.persistTabInQueryString) {
-        const url = new URL(window.location);
-        url.searchParams.set('tab', index);
-        history.pushState({}, '', url);
-    }
-};
+const emit = defineEmits<{
+    'update:modelValue': [value: Record<string, any>]
+}>()
 
 // Convert kebab-case or snake_case icon names to PascalCase for lucide-vue-next
-const getIconComponent = (iconName) => {
-    if (!iconName) return null;
+const getIconComponent = (iconName: string) => {
+    if (!iconName) return null
 
-    // Convert formats like 'user', 'file-text', 'dollar-sign' to PascalCase
+    // Convert formats like 'user', 'file-text', 'user-circle' to PascalCase
     const pascalCase = iconName
         .split(/[-_]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join('');
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('')
 
-    return LucideIcons[pascalCase] || null;
-};
-
-onMounted(() => {
-    if (props.persistTabInQueryString) {
-        const url = new URL(window.location);
-        const tabFromQuery = url.searchParams.get('tab');
-        if (tabFromQuery !== null) {
-            currentTab.value = parseInt(tabFromQuery);
-        }
-    }
-});
+    return (LucideIcons as any)[pascalCase] || null
+}
 </script>

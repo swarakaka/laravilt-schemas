@@ -1,57 +1,43 @@
 <template>
-    <div class="overflow-hidden rounded-xl border bg-card text-card-foreground shadow">
+    <div class="rounded-lg border p-6 space-y-6">
         <!-- Section Header -->
-        <div
-            v-if="heading || description || $slots.header"
-            :class="[
-                'flex justify-between border-b p-6',
-                collapsible ? 'cursor-pointer hover:bg-muted/50' : ''
-            ]"
-            @click="collapsible && toggleCollapse()"
-        >
-            <div class="flex items-start gap-3 flex-1">
+        <header v-if="heading">
+            <div
+                :class="[
+                    'flex items-center gap-2',
+                    collapsible ? 'cursor-pointer' : ''
+                ]"
+                @click="collapsible && toggleCollapse()"
+            >
                 <component
                     v-if="icon && getIconComponent(icon)"
                     :is="getIconComponent(icon)"
-                    class="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5"
+                    class="h-4 w-4 text-muted-foreground flex-shrink-0"
                 />
-                <div class="flex-1">
-                    <slot name="header">
-                        <h3 class="text-lg font-semibold leading-none tracking-tight">
-                            {{ heading }}
-                        </h3>
-                        <p v-if="description" class="mt-1.5 text-sm text-muted-foreground">
-                            {{ description }}
-                        </p>
-                    </slot>
-                </div>
+                <h3 class="mb-0.5 text-base font-medium">
+                    {{ heading }}
+                </h3>
+                <ChevronDown
+                    v-if="collapsible"
+                    :class="[
+                        'h-4 w-4 text-muted-foreground transition-transform ml-auto rtl:ml-0 rtl:mr-auto',
+                        isCollapsed ? '-rotate-90 rtl:rotate-90' : ''
+                    ]"
+                />
             </div>
-            <ChevronDown
-                v-if="collapsible"
-                :class="[
-                    'h-5 w-5 text-muted-foreground transition-transform ml-4 mt-0.5 flex-shrink-0',
-                    isCollapsed ? '-rotate-90 rtl:rotate-90' : ''
-                ]"
+            <p v-if="description" class="text-sm text-muted-foreground">
+                {{ description }}
+            </p>
+        </header>
+
+        <!-- Section Content -->
+        <div v-show="!isCollapsed" class="space-y-6">
+            <SchemaRenderer
+                v-if="schema && schema.length > 0"
+                :schema="schema"
+                :model-value="modelValue"
+                @update:model-value="$emit('update:modelValue', $event)"
             />
-        </div>
-
-        <!-- Section Body -->
-        <div v-show="!isCollapsed">
-            <div class="p-6">
-                <slot name="body">
-                    <SchemaRenderer
-                        v-if="schema && schema.length > 0"
-                        :schema="schema"
-                        :model-value="modelValue"
-                        @update:model-value="$emit('update:modelValue', $event)"
-                    />
-                </slot>
-            </div>
-
-            <!-- Section Footer -->
-            <div v-if="$slots.footer" class="border-t bg-muted/50 px-6 py-4">
-                <slot name="footer"></slot>
-            </div>
         </div>
     </div>
 </template>
