@@ -55,6 +55,8 @@
                     key="content"
                     :schema="tab.schema"
                     :model-value="modelValue"
+                    :form-controller="formController"
+                    :form-method="formMethod"
                     @update:model-value="(value) => emit('update:modelValue', value)"
                 />
             </Transition>
@@ -66,7 +68,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Schema from './Schema.vue'
 import * as LucideIcons from 'lucide-vue-next'
-import { ref, onMounted, onUnmounted, nextTick, Transition } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, Transition, inject } from 'vue'
+
+// Inject parent context for reactive fields
+const formController = inject<string | undefined>('formController', undefined)
+const formMethod = inject<string | undefined>('formMethod', 'getSchema')
 
 const props = defineProps<{
     tabs: Array<any>

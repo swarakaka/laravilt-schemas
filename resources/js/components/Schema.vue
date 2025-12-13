@@ -231,6 +231,12 @@ const updateValue = async (name: string, value: any) => {
     // Check if this field is reactive (live/lazy)
     const field = findFieldInSchema(internalSchema.value, name)
 
+    // Skip reactive updates for Repeater fields - they handle their own internal reactivity
+    // Triggering a schema update here would cause the Repeater to remount and lose state
+    if (field && field.component === 'repeater') {
+        return
+    }
+
     if (field && (field.isLive || field.isLazy)) {
         await triggerReactiveFieldUpdate(name, field)
     }

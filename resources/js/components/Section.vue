@@ -47,6 +47,8 @@
                         v-if="schema && schema.length > 0"
                         :schema="schema"
                         :model-value="modelValue"
+                        :form-controller="formController"
+                        :form-method="formMethod"
                         @update:model-value="$emit('update:modelValue', $event)"
                     />
                 </div>
@@ -56,10 +58,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 import * as LucideIcons from 'lucide-vue-next'
 import Schema from './Schema.vue'
+
+// Inject parent context for reactive fields
+const formController = inject<string | undefined>('formController', undefined)
+const formMethod = inject<string | undefined>('formMethod', 'getSchema')
 
 const props = defineProps<{
     heading?: string
