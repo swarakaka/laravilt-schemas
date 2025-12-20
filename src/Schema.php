@@ -270,14 +270,16 @@ class Schema extends Component
         // Use getSchema() to ensure context propagation (model, resourceSlug, relationManagerClass)
         $schema = $this->getSchema();
 
-        return array_filter($schema, function ($item): bool {
+        // Filter hidden components and re-index with array_values to ensure
+        // sequential 0-based indices (required for proper JSON array encoding)
+        return array_values(array_filter($schema, function ($item): bool {
             // Support both Components and Actions
             if (method_exists($item, 'isHidden')) {
                 return ! $item->isHidden();
             }
 
             return true;
-        });
+        }));
     }
 
     /**
