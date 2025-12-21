@@ -35,6 +35,16 @@ class Schema extends Component
     protected ?string $relationManagerClass = null;
 
     /**
+     * The current operation (create, edit, view).
+     */
+    protected ?string $operation = null;
+
+    /**
+     * The record/model instance being displayed or edited.
+     */
+    protected mixed $record = null;
+
+    /**
      * Create a new schema instance.
      * Override parent to make name optional.
      */
@@ -202,6 +212,42 @@ class Schema extends Component
     }
 
     /**
+     * Set the current operation (create, edit, view).
+     */
+    public function operation(?string $operation): static
+    {
+        $this->operation = $operation;
+
+        return $this;
+    }
+
+    /**
+     * Get the current operation.
+     */
+    public function getOperation(): ?string
+    {
+        return $this->operation;
+    }
+
+    /**
+     * Set the record/model for this schema.
+     */
+    public function record(mixed $record): static
+    {
+        $this->record = $record;
+
+        return $this;
+    }
+
+    /**
+     * Get the record/model.
+     */
+    public function getRecord(): mixed
+    {
+        return $this->record;
+    }
+
+    /**
      * Fill the schema with data.
      */
     public function fill(array $data): static
@@ -220,13 +266,42 @@ class Schema extends Component
     protected function fillComponents(array $components, array $data): void
     {
         foreach ($components as $component) {
-            // If component has a fill method (like Entry), call it
-            if (method_exists($component, 'getName') && method_exists($component, 'state')) {
+            // For Entry components (infolists), use the fill method which handles relationships
+            if ($this->record !== null && method_exists($component, 'fill') && $component instanceof \Laravilt\Infolists\Entries\Entry) {
+                $component->fill($this->record);
+            }
+            // For other components (form fields), use getName + state
+            elseif (method_exists($component, 'getName') && method_exists($component, 'state')) {
                 $name = $component->getName();
                 $value = $data[$name] ?? null;
 
+                // For form components with relationships (like CheckboxList), load from record's relationship
+                if ($value === null && $this->record !== null && method_exists($component, 'getRelationshipName')) {
+                    $relationshipName = $component->getRelationshipName();
+                    if ($relationshipName && method_exists($this->record, $relationshipName)) {
+                        try {
+                            // Load the relationship if not already loaded
+                            if (! $this->record->relationLoaded($relationshipName)) {
+                                $this->record->load($relationshipName);
+                            }
+                            // Get the related IDs
+                            $related = $this->record->{$relationshipName};
+                            if ($related instanceof \Illuminate\Support\Collection) {
+                                $value = $related->pluck('id')->toArray();
+                            }
+                        } catch (\Throwable $e) {
+                            // Relationship couldn't be loaded
+                        }
+                    }
+                }
+
                 // Set state - the component will handle null values (e.g., Entry uses placeholder)
                 $component->state($value);
+
+                // Also set the record on components that support it (for closures that need record access)
+                if ($this->record !== null && method_exists($component, 'setRecord')) {
+                    $component->setRecord($this->record);
+                }
             }
 
             // Handle nested schemas (Sections, Grids, Tabs, etc.)
@@ -318,7 +393,7 @@ class Schema extends Component
         }
 
         // Set evaluation context on all components recursively
-        $this->setEvaluationContextRecursive($this->schema, $data, $record);
+        $this->setEvaluationContextRecursive($this->schema, $data, $record, $this->operation);
 
         return array_merge(parent::toLaraviltProps(), [
             'gridColumns' => $this->getGridColumns(),
@@ -342,12 +417,12 @@ class Schema extends Component
     /**
      * Recursively set evaluation context on all components.
      */
-    protected function setEvaluationContextRecursive(array $components, array $data, mixed $record): void
+    protected function setEvaluationContextRecursive(array $components, array $data, mixed $record, ?string $operation = null): void
     {
         foreach ($components as $component) {
             // Set evaluation context if component supports it
             if (method_exists($component, 'evaluationContext')) {
-                $component->evaluationContext($data, $record);
+                $component->evaluationContext($data, $record, $operation);
             }
 
             // Set form model for relationship-based fields (like Select)
@@ -359,7 +434,7 @@ class Schema extends Component
             if (method_exists($component, 'getSchema')) {
                 $nestedSchema = $component->getSchema();
                 if (is_array($nestedSchema)) {
-                    $this->setEvaluationContextRecursive($nestedSchema, $data, $record);
+                    $this->setEvaluationContextRecursive($nestedSchema, $data, $record, $operation);
                 }
             }
 
@@ -371,7 +446,7 @@ class Schema extends Component
                         if (method_exists($tab, 'getSchema')) {
                             $tabSchema = $tab->getSchema();
                             if (is_array($tabSchema)) {
-                                $this->setEvaluationContextRecursive($tabSchema, $data, $record);
+                                $this->setEvaluationContextRecursive($tabSchema, $data, $record, $operation);
                             }
                         }
                     }
@@ -387,6 +462,10 @@ class Schema extends Component
      */
     public function getValidationRules(): array
     {
+        // Ensure evaluation context is set on all components before extracting rules
+        // This is needed because validation rules closures may use $operation, $record, etc.
+        $this->setEvaluationContextRecursive($this->schema, $this->data ?? [], null, $this->operation);
+
         return $this->extractValidationRulesFromComponents($this->schema);
     }
 

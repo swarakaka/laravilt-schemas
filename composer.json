@@ -1,7 +1,7 @@
 {
     "name": "laravilt/schemas",
     "description": "Complete schema system with sections, tabs, grids, and layout components. Organize form fields and information displays with powerful layout components supporting collapsible sections, responsive grids, and nested schemas.",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "type": "library",
     "license": "MIT",
     "keywords": [
